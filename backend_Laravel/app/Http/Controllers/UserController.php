@@ -6,17 +6,24 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 
 class UserController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $users = User::all();
+        $limit = $request->query('limit', 10);
+        $limit = min($limit, 100);
+
+        $users = User::paginate($limit);
 
         return response()->json([
-            "data"=> $users,
-            'count'=> count($users)
-        ], 201);
+            'data'=> $users->all(),
+            'current_page' => $users->currentPage(),
+            'last_page' => $users->lastPage(),
+            'per_page' => $users->perPage(),
+            'total' => $users->total(),
+        ]);
     }
 
 
@@ -26,12 +33,18 @@ class UserController extends Controller
             'name'=>'required|string|min:3|max:15',
             'email'=>'required|string|email|max:30|unique:users,email',
             'password'=>'required|string|min:5|confirmed',
+            'image'=>['required', 'image', 'mimes:png,jpg,jpeg', 'max:2048'],
         ]);
+
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('usersImages', 'public');
+        }
 
         $user = User::create([
             'name'=> $request->name,
             'email'=> $request->email,
-            'password'=> Hash::make($request->password)
+            'password'=> Hash::make($request->password),
+            "image"=> 'storage/' . $path,
         ]);
 
         return response()->json([
@@ -71,7 +84,7 @@ class UserController extends Controller
 
         return response()->json([
             "data"=> $user
-        ], 200);
+        ]);
     }
 
 
@@ -81,6 +94,34 @@ class UserController extends Controller
 
         return response()->json([
             'message' => 'Logout Successfully',
+        ]);
+    }
+
+
+    public function destroy(Request $request)
+    {
+        // 1- get the user data by user token
+        $user = $request->user(); // === $user = Auth::user();
+
+        // 2- delete user image
+        if ($user->image) {
+            $path = str_replace('storage/', '', $user->image);
+            Storage::disk('public')->delete($path);
+        }
+
+        // 3- Delete images from user posts
+        $posts = $user->posts;
+        foreach($posts as $post){
+            $path = str_replace('storage/', '', $post['image']);
+            Storage::disk('public')->delete($path);
+        }
+
+        // 4- delete the user
+        $user->delete();
+
+
+        return response()->json([
+            'message' => 'User Has Been Deleted Successfully',
         ]);
     }
 }

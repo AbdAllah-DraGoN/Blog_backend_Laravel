@@ -21,6 +21,9 @@ Route::post('/login', [UserController::class, 'login']);
 Route::delete(
     '/logout', [UserController::class, 'logout']
 )->middleware('auth:sanctum');
+Route::delete(
+    '/user', [UserController::class, 'destroy']
+)->middleware('auth:sanctum');
 
 // Posts
 Route::get('/posts', [PostController::class, 'index']);

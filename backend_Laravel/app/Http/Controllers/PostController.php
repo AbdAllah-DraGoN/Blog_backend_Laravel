@@ -9,41 +9,56 @@ use Illuminate\Support\Facades\Auth;
 
 class PostController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $all_posts = Post::all();
-        $length = count($all_posts);
+        // $all_posts = Post::all();
+        $limit = $request->query('limit', 10);
 
+        $limit = min($limit, 100); // ضمان أن العدد لا يتجاوز حد معين (مثلاً 100) لمنع الطلبات الكبيرة
+
+        $posts = Post::paginate($limit);
         return response()->json([
-            'data'=> $all_posts,
-            'count'=> $length
+            'data'=> $posts->all(),
+            'current_page' => $posts->currentPage(),
+            'last_page' => $posts->lastPage(),
+            'per_page' => $posts->perPage(),
+            'total' => $posts->total(),
         ]);
     }
 
 
-    public function orderPostsByCategory()
+    public function orderPostsByCategory(Request $request)
     {
-        // $all_posts = Post::inRandomOrder()->get();
-        $all_posts = Post::orderByRaw("FIELD(category, 'test', 'Personal', 'Business', 'Sports', 'News', 'Fitness', 'Travel', 'Food')")->get();
-        $length = count($all_posts);
+        $limit = $request->query('limit', 10);
+        $limit = min($limit, 100);
 
+        $posts = Post::orderByRaw(
+            "FIELD(category, 'test', 'Personal', 'Business', 'Sports', 'News', 'Fitness', 'Travel', 'Food')"
+        )->paginate($limit);
         return response()->json([
-            'data'=> $all_posts,
-            'count'=> $length
+            'data'=> $posts->all(),
+            'current_page' => $posts->currentPage(),
+            'last_page' => $posts->lastPage(),
+            'per_page' => $posts->perPage(),
+            'total' => $posts->total(),
         ]);
     }
 
 
     public function userPosts(Request $request)
     {
-        $user_id = $request->user()->id;
-        $allPostsForUser = Post::where('user_id', $user_id)->get();
+        $limit = $request->query('limit', 10);
+        $limit = min($limit, 100);
 
-        $length = count($allPostsForUser);  // === sizeof($allPostsForUser);
+        $user_id = $request->user()->id;
+        $posts = Post::where('user_id', $user_id)->paginate($limit);
 
         return response()->json([
-            'data'=> $allPostsForUser,
-            'count'=> $length
+            'data'=> $posts->all(),
+            'current_page' => $posts->currentPage(),
+            'last_page' => $posts->lastPage(),
+            'per_page' => $posts->perPage(),
+            'total' => $posts->total(),
         ]);
     }
 
@@ -80,7 +95,7 @@ class PostController extends Controller
             'title'=>['required','string','min:3','max:25'],
             'body'=> 'required|string|min:5',
             'image'=>['required', 'image', 'mimes:png,jpg,jpeg,gif', 'max:2048'],
-            'category'=>['required', 'in:test,Business,News,Personal,Sports,Fitness,Travel,Food'],
+            'category'=>['required', 'in:Test,Personal,Business,News,Sports,Fitness,Travel,Food'],
             // ....
         ]);
         // $path = null;
@@ -124,18 +139,19 @@ class PostController extends Controller
 
         // 4- validate post data
         $request->validate([
-            'title'=>['required','string','min:3','max:25'],
-            'body'=>['required|string|min:5'],
-            'image'=>['required', 'iamge', 'mimes:png,jpg,jpeg,gif', 'max:2048'],
-            // 'user_id'=>['required','exists:users,id'],
+            'title'=> ['string','min:3','max:25'],
+            'body'=> 'string|min:5',
         ]);
+
+        $title  = $request->title ?? $post->title;
+        $body  = $request->body ?? $post->body;
+        $category  = $request->category ?? $post->category;
 
         // 5- update the post data in DB
         $post->update([
-            'title'=> $request->title,
-            'body'=> $request->body,
-            'image'=> $request->image,
-            'category'=> $request->category,
+            'title'=> $title,
+            'body'=> $body,
+            'category'=> $category,
         ]);
 
         return response()->json([
@@ -175,20 +191,26 @@ class PostController extends Controller
 
 
     // Favorite Psots
-    public function getUserFavorites()
+    public function getUserFavorites(Request $request)
     {
-        $fav_posts = Auth::user()->favoritePosts;
-        $length = count($fav_posts);
+        $limit = $request->query('limit', 10);
+        $limit = min($limit, 100);
+
+        // $fav_posts = Auth::user()->favoritePosts()->paginate($limit);
+        $fav_posts = $request->user()->favoritePosts()->paginate($limit);
 
         return response()->json([
-            'data' => $fav_posts,
-            'count'=> $length
-        ], 200);
+            'data'=> $fav_posts->all(),
+            'current_page' => $fav_posts->currentPage(),
+            'last_page' => $fav_posts->lastPage(),
+            'per_page' => $fav_posts->perPage(),
+            'total' => $fav_posts->total(),
+        ]);
     }
 
-    public function addToFavorites($postId)
+    public function addToFavorites(Request $request, $postId)
     {
-        $status = Auth::user()->favoritePosts()->syncWithoutDetaching($postId);
+        $status = $request->user()->favoritePosts()->syncWithoutDetaching($postId);
         if (! $status['attached']) {
             return response()->json([
                 'message' => 'The post is already in the favorites',
@@ -199,9 +221,9 @@ class PostController extends Controller
         ], 201);
     }
 
-    public function deleteFromFavorites($postId)
+    public function deleteFromFavorites(Request $request, $postId)
     {
-        $status = Auth::user()->favoritePosts()->detach($postId);
+        $status = $request->user()->favoritePosts()->detach($postId);
         if (! $status) {
             return response()->json([
                 'message' => 'The post is not in favourites',
