@@ -1,13 +1,11 @@
 import { useState } from "react";
-import "./pages.css";
-import {
-  handleInputsChange,
-  handleSubmitBtnsClick,
-} from "../../functions/handleForms";
+import { handleInputsChange } from "../../functions/handleForms";
 import axios from "axios";
+import { toast } from "react-toastify";
 
 const Login = () => {
   const MAIN_API_URL = "http://127.0.0.1:8000/api";
+  const [data, setData] = useState(null);
   const [formValues, setFormValues] = useState({
     email: "",
     password: "",
@@ -16,15 +14,33 @@ const Login = () => {
     handleInputsChange(e, formValues, setFormValues);
   };
   const handleSubmitBtnClick = () => {
-    handleSubmitBtnsClick(formValues);
-  };
-  const sendData = () => {
-    const form = new FormData();
-
-    form.append("email", formValues.email);
-    form.append("password", formValues.password);
-
-    axios.post(`${MAIN_API_URL}/logn`, form);
+    const loading = toast.info("Loading...", {
+      autoClose: false,
+      closeOnClick: false,
+    });
+    axios
+      .post(`${MAIN_API_URL}/login`, formValues, {
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+      })
+      .then((res) => {
+        console.log(res);
+        setData(res.data);
+        if (data.message) {
+          toast.success(res.data.message);
+        } else {
+          console.log("have data error");
+        }
+      })
+      .catch((rej) => {
+        console.log(rej);
+        toast.error(rej.response.data.message);
+      })
+      .finally(() => {
+        toast.dismiss(loading);
+      });
   };
 
   return (

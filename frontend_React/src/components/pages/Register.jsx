@@ -1,13 +1,13 @@
 import { useState } from "react";
 import "./pages.css";
-import {
-  handleInputsChange,
-  handleSubmitBtnsClick,
-} from "../../functions/handleForms";
+import { handleInputsChange } from "../../functions/handleForms";
 import axios from "axios";
+import { toast } from "react-toastify";
+import { alertErrorsFromObject } from "../../functions/handleAlerts";
 
 const Register = () => {
   const MAIN_API_URL = "http://127.0.0.1:8000/api";
+  const [data, setData] = useState(null);
   const [formValues, setFormValues] = useState({
     name: "",
     email: "",
@@ -19,20 +19,18 @@ const Register = () => {
     handleInputsChange(e, formValues, setFormValues);
   };
   const handleSubmitBtnClick = () => {
-    handleSubmitBtnsClick(formValues);
-    sendData();
-  };
+    // handleSubmitBtnsClick(formValues);
 
-  const sendData = () => {
+    // send request
     const form = new FormData();
 
-    form.append("name", formValues.name);
-    form.append("email", formValues.email);
-    form.append("password", formValues.password);
-    form.append("password_confirmation", formValues.password_confirmation);
-    form.append("image", formValues.image);
-    // console.log(Array.from(form));
-
+    for (const input in formValues) {
+      form.append(input, formValues[input]);
+    }
+    const loading = toast.info("Loading...", {
+      autoClose: false,
+      closeOnClick: false,
+    });
     axios
       .post(`${MAIN_API_URL}/register`, form, {
         headers: {
@@ -42,11 +40,28 @@ const Register = () => {
       })
       .then((res) => {
         console.log(res);
+        setData(res.data);
+        if (data.message) {
+          toast.success(data.message);
+        } else {
+          console.log("have data error");
+        }
       })
       .catch((rej) => {
-        console.log(rej);
+        // console.log(rej);
+        const errors = rej.response.data.errors;
+
+        if (errors) {
+          alertErrorsFromObject(errors);
+        } else {
+          console.log("you have a error in the error");
+        }
+      })
+      .finally(() => {
+        toast.dismiss(loading);
       });
   };
+
   return (
     <div>
       <div className="container">
