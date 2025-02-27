@@ -6,6 +6,7 @@ use App\Http\Resources\CommentResource;
 use App\Http\Resources\PostResource;
 use App\Models\Favorite;
 use App\Models\Post;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -16,12 +17,30 @@ class PostController extends Controller
         // $all_posts = Post::all();
         $limit = $request->query('limit', 10);
 
-        $limit = min($limit, 100); // ضمان أن العدد لا يتجاوز حد معين (مثلاً 100) لمنع الطلبات الكبيرة
+        // ضمان أن العدد لا يتجاوز حد معين (مثلاً 100) لمنع الطلبات الكبيرة
+        $limit = min($limit, 100);
 
-        $posts = Post::paginate($limit);
+        // جلب المستخدم الحالي إذا كان هناك توكن
+        $user = Auth::guard('sanctum')->user();
+
+        // جلب المنشورات مع معلومات المستخدم
+        $posts = Post::with(['user'])->paginate($limit);
+
+        // `getCollection()` extracts the actual Collection from the Paginator, This allows modifying the data before returning it
+        $posts->getCollection()->transform(function ($post) use ($user) {
+            $post->liked = $user ? $post->favoriteByUser()->where('user_id', $user->id)->exists() : false;
+
+            // Fetch users who liked this post
+            $post->liked_users = DB::table('favorites')
+            // 1️⃣ Join `favorites` with `users` to get user details
+            ->join('users', 'favorites.user_id', '=', 'users.id')
+            // 2️⃣ Filter by `post_id` to get only relevant favorites, then count it
+            ->where('favorites.post_id', $post->id)->count();
+            return $post;
+        });
 
         return response()->json([
-            'data'=> $posts->all(),
+            'data'=> $posts->items(),
             'current_page' => $posts->currentPage(),
             'last_page' => $posts->lastPage(),
             'per_page' => $posts->perPage(),
@@ -66,7 +85,7 @@ class PostController extends Controller
     }
 
 
-    public function show($postId)
+    public function show(Request $request,$postId)
     {
         /*  // All Ways To Get Post
                 // $singlePostFromDB = Post::find($postId); //model object
@@ -78,17 +97,24 @@ class PostController extends Controller
                 // $allPostsHasTitle = Post::where('title', 'php')->get()   //select * from posts where title = 'php';
         */
 
-        $post = Post::with(['user', 'comments.user'])->find($postId);
-
+        $post = Post::with(['user'])->find($postId);
         if(is_null($post)) {
             return response()->json([
                 'message'=> 'post not found'
             ], 404);
         }
-
+        $isFavorite = null;
+        if ($request->user()) {
+            $isFav = $request->user()->favoritePosts()->where('post_id', $postId)->exists();
+            $isFavorite = $isFav ? "yes" : "no";
+        }
+        // $usersLikeIt = $post->favoriteByUser()->get();
+        $likes = $post->favoriteByUser()->count();
         // PostResource formats and filters the post data before returning it in the API response
         return response()->json([
             'post' => PostResource::make($post),
+            'likes' => $likes,
+            'is_favorite' => $isFavorite
         ]);
     }
 

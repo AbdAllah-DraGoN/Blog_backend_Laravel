@@ -32,7 +32,7 @@ class CommentController extends Controller
     public function store(Request $request,$postId)
     {
         $request->validate([
-            'content' => 'required|string|min:10|max:200',
+            'body' => 'required|string|max:200',
         ]);
 
         // 1- select or find the post
@@ -48,11 +48,12 @@ class CommentController extends Controller
         $comment = Comment::create([
             'post_id' => $postId,
             'user_id' =>$request->user()->id,
-            'body' => $request->content,
+            'body' => $request->body,
         ]);
 
         return response()->json([
             'comment'=> $comment,
+            'message' => 'Comment Has Been Created Successfully',
         ],201);
     }
 

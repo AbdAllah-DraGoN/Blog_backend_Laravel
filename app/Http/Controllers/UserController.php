@@ -30,8 +30,8 @@ class UserController extends Controller
     public function register(Request $request)
     {
         $request->validate([
-            'name'=>'required|string|min:3|max:15',
-            'email'=>'required|string|email|max:30|unique:users,email',
+            'name'=>'required|string|min:3|max:25',
+            'email'=>'required|string|email|max:50|unique:users,email',
             'password'=>'required|string|min:5|confirmed',
             'image'=>['required', 'image', 'mimes:png,jpg,jpeg', 'max:2048'],
         ]);
@@ -61,13 +61,14 @@ class UserController extends Controller
             'password'=>'required|string',
         ]);
 
-        if(! Auth::attempt($request->only('email', 'password'))){
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json([
-                'message' => 'invalid email or password',
+                'message' => 'invalid email or password'
             ], 401);
         }
 
-        $user = User::where('email', $request->email)->firstOrFail();
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([

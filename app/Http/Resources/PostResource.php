@@ -28,7 +28,6 @@ class PostResource extends JsonResource
                 'email' => $this->user->email,
                 'image' => $this->user->image,
             ],
-            'comments' => CommentResource::collection($this->comments),
         ];
     }
 }
