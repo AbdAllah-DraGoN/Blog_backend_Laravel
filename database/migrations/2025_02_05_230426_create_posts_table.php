@@ -16,12 +16,13 @@ return new class extends Migration
             $table->string('title');
             $table->text('body');
             $table->text('image');
-            $table->enum('category', ['test', 'Business', 'News', 'Personal', 'Sports', 'Fitness', 'Travel', 'Food']);
+            $table->foreignId('category_id')->constrained('categories')->cascadeOnDelete();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->timestamps();
         });
     }
 
+    // $table->enum('category', ['test', 'Business', 'News', 'Personal', 'Sports', 'Fitness', 'Travel', 'Food']);
     /**
      * Reverse the migrations.
      */

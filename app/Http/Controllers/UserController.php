@@ -79,9 +79,15 @@ class UserController extends Controller
     }
 
 
-    public function show()
+    public function show($id)
     {
-        $user = Auth::user();
+        $user = User::find($id);
+
+        if (!$user) {
+            return response()->json([
+                'message' => 'User Not Found',
+            ], 404);
+        }
 
         return response()->json([
             "data"=> $user

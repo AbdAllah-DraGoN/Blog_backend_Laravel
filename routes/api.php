@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\UserController;
@@ -16,7 +17,8 @@ Route::get('/user', function (Request $request) {
 
 // Users
 Route::get('/users', [UserController::class, 'index']);
-Route::get('/user', [UserController::class, 'show'])->middleware('auth:sanctum');
+Route::get('/users/{id}', [UserController::class, 'show']);
+// Route::get('/users/profile', [UserController::class, 'showCurrentUser'])->middleware('auth:sanctum');
 Route::post('/register', [UserController::class, 'register']);
 Route::post('/login', [UserController::class, 'login']);
 Route::delete(
@@ -34,6 +36,13 @@ Route::get('/user/posts', [PostController::class, 'userPosts'])->middleware('aut
 Route::post('/posts', [PostController::class, 'store'])->middleware('auth:sanctum');
 Route::put('/posts/{id}', [PostController::class, 'update'])->middleware('auth:sanctum');
 Route::delete('/posts/{id}', [PostController::class, 'destroy'])->middleware('auth:sanctum');
+
+// Categories
+Route::get('/categories', [CategoryController::class, 'index']);
+Route::get('/categories/{id}', [CategoryController::class, 'show']);
+Route::post('/categories', [CategoryController::class, 'store'])->middleware('auth:sanctum');
+Route::put('/categories/{id}', [CategoryController::class, 'update'])->middleware('auth:sanctum');
+Route::delete('/categories/{id}', [CategoryController::class, 'delete'])->middleware('auth:sanctum');
 
 // Comments
 Route::get('/posts/{id}/comments', [CommentController::class, 'index']);

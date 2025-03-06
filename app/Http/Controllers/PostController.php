@@ -24,7 +24,7 @@ class PostController extends Controller
         $user = Auth::guard('sanctum')->user();
 
         // جلب المنشورات مع معلومات المستخدم
-        $posts = Post::with(['user'])->paginate($limit);
+        $posts = Post::with(['user','category'])->paginate($limit);
 
         // `getCollection()` extracts the actual Collection from the Paginator, This allows modifying the data before returning it
         $posts->getCollection()->transform(function ($post) use ($user) {
@@ -125,8 +125,7 @@ class PostController extends Controller
             'title'=>['required','string','min:3','max:25'],
             'body'=> 'required|string|min:5',
             'image'=>['required', 'image', 'mimes:png,jpg,jpeg,gif', 'max:2048'],
-            'category'=>['required', 'in:Test,Personal,Business,News,Sports,Fitness,Travel,Food'],
-            // ....
+            'category_id'=>'required|exists:categories,id',
         ]);
         // $path = null;
         if ($request->hasFile('image')) {
@@ -137,7 +136,7 @@ class PostController extends Controller
             'title'=> $request->title,
             'body'=> $request->body,
             "image"=> 'storage/' . $path,
-            'category'=> $request->category,
+            'category_id'=> $request->category_id,
             'user_id'=> $request->user()->id,
         ]);
 
@@ -264,5 +263,4 @@ class PostController extends Controller
             'message' => 'Post Has Been Remove From Favorites Successfully',
         ]);
     }
-
 }
