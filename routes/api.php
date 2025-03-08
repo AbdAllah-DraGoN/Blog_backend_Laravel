@@ -32,7 +32,7 @@ Route::delete(
 Route::get('/posts', [PostController::class, 'index']);
 Route::get('/posts/ordered', [PostController::class, 'orderPostsByCategory']);
 Route::get('/posts/{id}', [PostController::class, 'show']);
-Route::get('/user/posts', [PostController::class, 'userPosts'])->middleware('auth:sanctum');
+Route::get('/users/{id}/posts', [PostController::class, 'userPosts']);
 Route::post('/posts', [PostController::class, 'store'])->middleware('auth:sanctum');
 Route::put('/posts/{id}', [PostController::class, 'update'])->middleware('auth:sanctum');
 Route::delete('/posts/{id}', [PostController::class, 'destroy'])->middleware('auth:sanctum');

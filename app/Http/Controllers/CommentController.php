@@ -10,21 +10,28 @@ use Illuminate\Support\Facades\Auth;
 class CommentController extends Controller
 {
 
-    public function index($postId)
+    public function index($postId , Request $request)
     {
-        // 1- select or find the post
         $post = Post::find($postId);
 
-        // 2- check if post exist
         if(is_null($post)) {
             return response()->json([
                 'message'=> 'post not found'
             ], 404);
         }
-        $comments = Comment::where('post_id', $postId)->with('user')->latest()->get();
+
+
+        $limit = $request->query('limit', 10);
+        $limit = min($limit, 100);
+
+        $comments = Comment::where('post_id', $postId)->with('user')->latest()->paginate($limit);
 
         return response()->json([
-            'data'=> $comments,
+            'data'=> $comments->items(),
+            'current_page' => $comments->currentPage(),
+            'last_page' => $comments->lastPage(),
+            'per_page' => $comments->perPage(),
+            'total' => $comments->total(),
         ]);
     }
 

@@ -24,7 +24,7 @@ class PostController extends Controller
         $user = Auth::guard('sanctum')->user();
 
         // جلب المنشورات مع معلومات المستخدم
-        $posts = Post::with(['user','category'])->paginate($limit);
+        $posts = Post::with(['user','category'])->orderBy('created_at', 'desc')->paginate($limit);
 
         // `getCollection()` extracts the actual Collection from the Paginator, This allows modifying the data before returning it
         $posts->getCollection()->transform(function ($post) use ($user) {
@@ -67,13 +67,30 @@ class PostController extends Controller
     }
 
 
-    public function userPosts(Request $request)
+    public function userPosts($user_id, Request $request)
     {
         $limit = $request->query('limit', 10);
         $limit = min($limit, 100);
 
-        $user_id = $request->user()->id;
-        $posts = Post::where('user_id', $user_id)->paginate($limit);
+        // جلب المستخدم الحالي إذا كان هناك توكن
+        $user = Auth::guard('sanctum')->user();
+
+        // جلب المنشورات مع معلومات المستخدم
+        $posts = Post::with(['user','category'])->where('user_id', $user_id)->orderBy('created_at', 'desc')->paginate($limit);
+
+        // `getCollection()` extracts the actual Collection from the Paginator, This allows modifying the data before returning it
+        $posts->getCollection()->transform(function ($post) use ($user) {
+            $post->liked = $user ? $post->favoriteByUser()->where('user_id', $user->id)->exists() : false;
+
+            // Fetch users who liked this post
+            $post->liked_users = DB::table('favorites')
+            // 1️⃣ Join `favorites` with `users` to get user details
+            ->join('users', 'favorites.user_id', '=', 'users.id')
+            // 2️⃣ Filter by `post_id` to get only relevant favorites, then count it
+            ->where('favorites.post_id', $post->id)->count();
+            return $post;
+        });
+        // $posts = Post::where('user_id', $user_id)->paginate($limit);
 
         return response()->json([
             'data'=> $posts->all(),
@@ -170,7 +187,7 @@ class PostController extends Controller
         $request->validate([
             'title'=> ['string','min:3','max:25'],
             'body'=> 'string|min:5',
-            'category'=>['in:Test,Personal,Business,News,Sports,Fitness,Travel,Food'],
+            'category_id'=>'required|exists:categories,id',
         ]);
 
         $title  = $request->title ?? $post->title;
