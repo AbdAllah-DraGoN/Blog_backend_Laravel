@@ -28,6 +28,11 @@ Route::delete(
     '/user', [UserController::class, 'destroy']
 )->middleware('auth:sanctum');
 
+// Favorite Posts
+Route::get('/posts/favorites', [PostController::class, 'getUserFavorites'])->middleware('auth:sanctum');
+Route::post('/posts/{id}/favorite', [PostController::class, 'addToFavorites'])->middleware('auth:sanctum');
+Route::delete('/posts/{id}/favorite', [PostController::class, 'deleteFromFavorites'])->middleware('auth:sanctum');
+
 // Posts
 Route::get('/posts', [PostController::class, 'index']);
 Route::get('/posts/ordered', [PostController::class, 'orderPostsByCategory']);
@@ -50,10 +55,6 @@ Route::post('/posts/{id}/comments', [CommentController::class, 'store'])->middle
 Route::put('/comments/{id}', [CommentController::class, 'update'])->middleware('auth:sanctum');
 Route::delete('/comments/{id}', [CommentController::class, 'destroy'])->middleware('auth:sanctum');
 
-// Favorite Posts
-Route::get('/posts/favorites/all', [PostController::class, 'getUserFavorites'])->middleware('auth:sanctum');
-Route::post('/posts/{id}/favorite', [PostController::class, 'addToFavorites'])->middleware('auth:sanctum');
-Route::delete('/posts/{id}/favorite', [PostController::class, 'deleteFromFavorites'])->middleware('auth:sanctum');
 
 
 

@@ -123,7 +123,6 @@ class CommentController extends Controller
         // 4- delete the comment from database
         $comment->delete();
 
-
         return response()->json([
             'message' => 'Comment Has Been Deleted Successfully',
         ]);
